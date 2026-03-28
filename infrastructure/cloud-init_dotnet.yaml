@@ -1,0 +1,40 @@
+#cloud-config
+
+package_update: true
+
+runcmd:
+  - add-apt-repository ppa:dotnet/backports
+  - apt-get update
+  - apt-get install -y aspnetcore-runtime-10.0
+  - mkdir -p /opt/KeyVaultDemo
+  - chown azureuser:azureuser /opt/KeyVaultDemo
+  - systemctl daemon-reload
+  - systemctl enable KeyVaultDemo.service
+
+write_files:
+  - path: /etc/systemd/system/KeyVaultDemo.service
+    content: |
+      [Unit]
+      Description=ASP.NET Web App running on Ubuntu
+
+      [Service]
+      WorkingDirectory=/opt/KeyVaultDemo
+      ExecStart=/usr/bin/dotnet /opt/KeyVaultDemo/KeyVaultDemo.dll
+      Restart=always
+      RestartSec=10
+      KillSignal=SIGINT
+      SyslogIdentifier=KeyVaultDemo
+      User=www-data
+      EnvironmentFile=/etc/KeyVaultDemo/.env
+
+      [Install]
+      WantedBy=multi-user.target
+    owner: root:root
+    permissions: '0644'
+
+  - path: /etc/KeyVaultDemo/.env
+    content: |
+      ASPNETCORE_ENVIRONMENT=Production
+      ASPNETCORE_URLS=http://+:5000
+    owner: root:root
+    permissions: '0600'
